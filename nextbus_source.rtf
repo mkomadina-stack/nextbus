@@ -1,0 +1,575 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf210
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red0\green116\blue0;\red100\green56\blue32;\red196\green26\blue22;
+\red170\green13\blue145;\red92\green38\blue153;\red46\green13\blue110;\red63\green110\blue116;\red14\green14\blue255;
+\red28\green0\blue207;\red38\green71\blue75;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab529
+\pard\tx529\pardeftab529\pardirnatural
+
+\f0\fs22 \cf2 \CocoaLigature0 //\cf0 \
+\cf2 //  Parser.h\cf0 \
+\cf2 //  NextBus2\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/22/14.\cf0 \
+\cf2 //  Copyright (c) 2014 com.mkomadina. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\
+\cf3 #import \cf4 <Foundation/Foundation.h>\cf3 \
+\cf0 \
+\cf5 @interface\cf0  APIparser : \cf6 NSObject\cf0  <\cf6 NSXMLParserDelegate\cf0 >\
+\
+\cf5 @property\cf0  \cf6 NSXMLParser\cf0  *parser;          \cf2 // the NSXML parser\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *element;            \cf2 // used for reading each element\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *URLString;          \cf2 // url for API\cf0 \
+\
+- (\cf5 void\cf0 ) parseXMLFile;                  \cf2 // method to walk through the XML\cf0 \
+- (\cf5 id\cf0 ) initWithURL: (\cf6 NSString\cf0  *) URL;   \cf2 // URL connection for parser\cf0 \
+\
+\cf5 @end\cf0 \
+\
+\cf2 //\cf0 \
+\cf2 //  Parser.m\cf0 \
+\cf2 //  NextBus2\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/22/14.\cf0 \
+\cf2 //  Copyright (c) 2014 com.mkomadina. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\
+\cf3 #import \cf4 "Parser.h"\cf3 \
+\cf0 \
+\cf5 @implementation\cf0  APIparser\
+\
+\
+\cf2 // API Connection settings\cf0 \
+\
+\
+\cf5 const\cf0  \cf6 NSString\cf0  *TOKEN = \cf4 @"1c61def7-8b50-48d9-a363-8c327ca158e1"\cf0 ;    \cf2 // from SamTrans\cf0 \
+\cf5 const\cf0  \cf6 NSString\cf0  *DEFAULT_BUS_STOP = \cf4 @"321001"\cf0 ;                       \cf2 // Canada College\cf0 \
+\
+- (\cf5 void\cf0 ) parseXMLFile \{\
+    \
+    \{\
+        \
+        \cf2 // build the API connection string\cf0 \
+        \cf6 NSString\cf0  *API = [\cf6 NSString\cf0  \cf7 stringWithFormat\cf0 :\cf4 @"%@?token=%@&stopcode=%@"\cf0 ,\
+                         \cf5 self\cf0 .\cf8 URLString\cf0 ,\
+                         \cf8 TOKEN\cf0 ,\
+                         \cf8 DEFAULT_BUS_STOP\cf0 ];\
+        \
+        \cf6 NSURL\cf0  *URL = [\cf6 NSURL\cf0  \cf7 URLWithString\cf0 :API]; \cf2 // make call to the API\cf0 \
+        \
+        \cf6 NSData\cf0  *data = [[\cf6 NSData\cf0  \cf7 alloc\cf0 ] \cf7 initWithContentsOfURL\cf0 :URL];\
+        \cf6 NSError\cf0  *error = \cf5 nil\cf0 ;                   \cf2 // TODO: Add error handling\cf0 \
+        \
+        \cf2 // setup and run the parser on the XML\cf0 \
+        \cf5 self\cf0 .\cf8 parser\cf0  = [[\cf6 NSXMLParser\cf0  \cf7 alloc\cf0 ] \cf7 initWithData\cf0 :data];\
+        \cf5 self\cf0 .\cf8 parser\cf0 .\cf7 delegate\cf0  = \cf5 self\cf0 ;\
+        [\cf5 self\cf0 .\cf8 parser\cf0  \cf7 parse\cf0 ];\
+        \
+    \}\
+    \
+\}\
+\
+- (\cf5 id\cf0 ) initWithURL: (\cf6 NSString\cf0  *) URL \{  \cf2 // URL connection for parser\cf0 \
+    \cf5 self\cf0  = [\cf5 super\cf0  \cf7 init\cf0 ];\
+    \
+    \cf5 self\cf0 .\cf8 URLString\cf0  = URL;\
+    \
+    \cf5 return\cf0  \cf5 self\cf0 ;\
+\}\
+\
+\cf5 @end\
+\
+\
+\cf2 //\cf0 \
+\cf2 //  Bus.h\cf0 \
+\cf2 //  xmlreadtest1\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/12/14.\cf0 \
+\cf2 //  Copyright (c) 2014 mkomadina. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Bus is the main class that holds the departure time, route, and direction information for a given bus\cf0 \
+\cf2 //  Bus uses data received from the SamTrans 511.org API\cf0 \
+\cf2 //  {\field{\*\fldinst{HYPERLINK "http://511.org/docs/RTT%20API%20V2.0%20Reference.pdf"}}{\fldrslt \cf9 http://511.org/docs/RTT%20API%20V2.0%20Reference.pdf}}\cf0 \
+\
+\cf3 #import \cf4 <Foundation/Foundation.h>\cf3 \
+\cf0 \
+\cf5 @interface\cf0  Bus : \cf6 NSObject\cf0  \
+\
+\cf2 // properties holding values from the API XML\cf0 \
+\
+\cf5 @property\cf0  \cf6 NSString\cf0  *departTimeXML;  \cf2 // departure time in minutes such as "15"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *agencyXML;      \cf2 // name of agency such as "SamTrans"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *routeCodeXML;   \cf2 // route code such as "274"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *directionXML;   \cf2 // direction such as "WEST"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *stopNameXML;    \cf2 // stop name such as "Canada College"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *stopCodeXML;    \cf2 // SamTrans internal id for a stop such as "321001"\cf0 \
+\
+\cf5 @property\cf0  \cf5 long\cf0  departTimeMinutes;   \cf2 // converted departure time in minutes\cf0 \
+\cf5 @property\cf0  \cf6 NSDate\cf0  *departTime;       \cf2 // converted departure time in date format\cf0 \
+\
+\
+\cf2 // set bus departure information based on input\cf0 \
+-(\cf5 id\cf0 ) initWithTime: (\cf6 NSString\cf0  *) inDepartTime\
+         forAgency: (\cf6 NSString\cf0  *) inAgency\
+      andRouteCode: (\cf6 NSString\cf0  *) inRouteCode\
+      andDirection: (\cf6 NSString\cf0  *) inDirection\
+       andStopName: (\cf6 NSString\cf0  *) inStopName\
+       andStopCode: (\cf6 NSString\cf0  *) inStopCode;\
+\
+\
+\cf5 @end\cf0 \
+\
+\
+\cf2 //\cf0 \
+\cf2 //  Bus.m\cf0 \
+\cf2 //  xmlreadtest1\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/12/14.\cf0 \
+\cf2 //  Copyright (c) 2014 mkomadina. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\
+\cf3 #import \cf4 "Bus.h"\cf3 \
+\cf0 \
+\cf3 #define SECONDS_PER_MINUTE  \cf10 60\cf3 \
+\cf0 \
+\cf5 @implementation\cf0  Bus\
+\
+\cf2 // set bus departure information\cf0 \
+\
+-(\cf5 id\cf0 ) initWithTime: (\cf6 NSString\cf0  *) inDepartTime\
+         forAgency: (\cf6 NSString\cf0  *) inAgency\
+      andRouteCode: (\cf6 NSString\cf0  *) inRouteCode\
+      andDirection: (\cf6 NSString\cf0  *) inDirection\
+       andStopName: (\cf6 NSString\cf0  *) inStopName\
+       andStopCode: (\cf6 NSString\cf0  *) inStopCode\
+\{\
+    \
+    \cf5 self\cf0  = [\cf5 super\cf0  \cf7 init\cf0 ];\
+    \
+    \cf2 // store the input parameters in the object\cf0 \
+    \
+    \cf5 if\cf0  (\cf5 self\cf0 ) \{\
+        \cf5 self\cf0 .\cf8 departTimeXML\cf0  = inDepartTime;\
+        \cf5 self\cf0 .\cf8 agencyXML\cf0  = inAgency;\
+        \cf5 self\cf0 .\cf8 routeCodeXML\cf0  = inRouteCode;\
+        \cf5 self\cf0 .\cf8 directionXML\cf0  = inDirection;\
+        \cf5 self\cf0 .\cf8 stopNameXML\cf0  = inStopName;\
+        \cf5 self\cf0 .\cf8 stopCodeXML\cf0  = inStopCode;\
+        \
+        \cf2 // convert the XML string time to long\cf0 \
+        \cf5 long\cf0  time = [inDepartTime \cf7 integerValue\cf0 ];\
+        \
+        \cf5 self\cf0 .\cf8 departTimeMinutes\cf0  = time;  \cf2 // save time in minutes\cf0 \
+        \
+        \cf7 NSLog\cf0 (\cf4 @"Bus.m: Departure time is %ld"\cf0 , time);\
+        \
+        \cf2 // get the current date and add the number of minutes of the departure time\cf0 \
+        \
+        \cf6 NSDate\cf0  *currentDate = [\cf6 NSDate\cf0  \cf7 date\cf0 ];\
+        \cf5 self\cf0 .\cf8 departTime\cf0  = [currentDate \cf7 dateByAddingTimeInterval\cf0 :time * \cf3 SECONDS_PER_MINUTE\cf0 ];\
+        \
+    \}\
+    \
+    \cf5 return\cf0  \cf5 self\cf0 ;\
+    \
+\}\
+\
+\cf5 @end\cf0 \
+\
+\
+\cf2 //\cf0 \
+\cf2 //  BusParser.h\cf0 \
+\cf2 //  xmlreadtest1\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/12/14.\cf0 \
+\cf2 //  Copyright (c) 2014 mkomadina. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\cf2 //  BusParser is the class that reads the XML from the API and builds the list of buses for the route.\cf0 \
+\cf2 //  BusParser makes use of NSXMLParser.\cf0 \
+\
+\cf3 #import \cf4 <Foundation/Foundation.h>\cf3 \
+#import \cf4 "Parser.h"\cf3 \
+\cf0 \
+\cf5 @interface\cf0  BusParser : \cf8 APIparser\cf0    \cf2 // delegate needed for NSXMLParser\cf0 \
+\
+\cf5 @property\cf0  \cf6 NSMutableArray\cf0  *busArray;      \cf2 // main collection of Bus objects for the stop\cf0 \
+\
+\cf2 // Because of the XML structure, the parser has to read into it before getting to a specific\cf0 \
+\cf2 // bus.  The parsing needs to keep track of the context of the direction, stop, agency and route\cf0 \
+\cf2 // which are specified above the actual departure time\cf0 \
+\
+\cf5 @property\cf0  \cf6 NSString\cf0  *currentDirection;   \cf2 // bus direction such as "EAST"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *currentStopName;    \cf2 // stop name such as "CANADA COLLEGE"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *currentAgency;      \cf2 // agency name such as "SAMTRANS"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *currentRoute;       \cf2 // bus route number such as "274"\cf0 \
+\cf5 @property\cf0  \cf6 NSString\cf0  *currentTimeToStop;\
+\cf5 @property\cf0  \cf6 NSString\cf0  *currentStopCode;\
+\
+- (\cf5 id\cf0 )initWithArray: (\cf6 NSMutableArray\cf0  *) busArray;   \cf2 // initializer for array of Bus objects\cf0 \
+\
+\
+\cf5 @end\
+\
+\
+\cf2 //\cf0 \
+\cf2 //  BusParser.m\cf0 \
+\cf2 //  xmlreadtest1\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/12/14.\cf0 \
+\cf2 //  Copyright (c) 2014 mkomadina. All rights reserved.\cf0 \
+\
+\cf2 //  BusParser is the class that reads the XML from the API and builds the list of buses for the route.\cf0 \
+\cf2 //  BusParser makes use of NSXMLParser.\cf0 \
+\cf2 //\cf0 \
+\
+\cf2 //  The following video was helpful in understanding how to use NSXMLParser\cf0 \
+\cf2 //      {\field{\*\fldinst{HYPERLINK "https://www.youtube.com/watch?v=j2ocsvrenuw"}}{\fldrslt \cf9 https://www.youtube.com/watch?v=j2ocsvrenuw}}\cf0 \
+\
+\
+\cf3 #import \cf4 "BusParser.h"\cf3 \
+#import \cf4 "Bus.h"\cf3 \
+#import \cf4 "Parser.h"\cf3 \
+\cf0 \
+\cf6 NSString\cf0  *GET_DEPARTURES_URL = \cf4 @"http://services.my511.org/Transit2.0/GetNextDeparturesByStopCode.aspx"\cf0 ;\
+\
+\
+\cf5 @implementation\cf0  BusParser\
+    \
+\
+\cf2 // initializer for array of Bus objects\cf0 \
+- (\cf5 id\cf0 )initWithArray: (\cf6 NSMutableArray\cf0  *) busArray \{\
+    \cf5 self\cf0  = [\cf5 super\cf0  \cf11 initWithURL\cf0 :\cf8 GET_DEPARTURES_URL\cf0 ];  \cf2 // set the URL for get departures\cf0 \
+    \
+    \cf5 if\cf0  (\cf5 self\cf0 ) \{\
+        \cf5 self\cf0 .\cf8 busArray\cf0  = busArray;  \cf2 // save the array of buses\cf0 \
+    \}\
+    \cf5 return\cf0  \cf5 self\cf0 ;\
+\}\
+\
+\
+\cf2 // NSXMLparser calls "didStartElement" whenever it encounters a new XML element.\cf0 \
+\cf2 // The method then has to determine if the element found is of interest\cf0 \
+- (\cf5 void\cf0 )parser:(\cf6 NSXMLParser\cf0  *)parser\
+didStartElement:(\cf6 NSString\cf0  *)elementName\
+  namespaceURI:(\cf6 NSString\cf0  *)namespaceURI\
+ qualifiedName:(\cf6 NSString\cf0  *)qName\
+    attributes:(\cf6 NSDictionary\cf0  *)attributeDict \{\
+    \
+    \
+    \cf2 // check if the elementName is relevant\cf0 \
+    \cf2 // if it matches, read the appropriate value or attribute\cf0 \
+    \
+    \
+    \cf5 if\cf0  ( [elementName \cf7 isEqualToString\cf0 :\cf4 @"RouteDirection"\cf0 ]) \{ \cf2 // indicates bus direction\cf0 \
+        \
+        \cf6 NSString\cf0  *thisDirection = [attributeDict \cf7 objectForKey\cf0 :\cf4 @"Code"\cf0 ]; \cf2 // direction Code\cf0 \
+        \
+        \cf5 if\cf0  (thisDirection) \{\
+            \cf5 self\cf0 .\cf8 currentDirection\cf0  = thisDirection;\
+            \cf7 NSLog\cf0 (\cf4 @"Direction is %@"\cf0 , thisDirection);\
+        \}\
+    \}\
+    \cf5 else\cf0  \cf5 if\cf0  ( [elementName \cf7 isEqualToString\cf0 :\cf4 @"Route"\cf0 ]) \{\
+        \
+        \cf6 NSString\cf0  *thisRoute = [attributeDict \cf7 objectForKey\cf0 :\cf4 @"Name"\cf0 ];     \cf2 // route name\cf0 \
+        \
+        \cf5 if\cf0  (thisRoute) \{\
+            \cf5 self\cf0 .\cf8 currentRoute\cf0  = thisRoute;\
+            \cf7 NSLog\cf0 (\cf4 @"Route is %@"\cf0 , thisRoute);\
+        \}\
+    \}\
+    \cf5 else\cf0  \cf5 if\cf0  ( [elementName \cf7 isEqualToString\cf0 :\cf4 @"Stop"\cf0 ]) \{\
+        \
+        \cf6 NSString\cf0  *thisStop = [attributeDict \cf7 objectForKey\cf0 :\cf4 @"name"\cf0 ];      \cf2 // stop name\cf0 \
+        \
+        \cf6 NSString\cf0  *thisStopCode = [attributeDict \cf7 objectForKey\cf0 :\cf4 @"StopCode"\cf0 ]; \cf2 // stop code\cf0 \
+        \
+        \cf5 if\cf0  (thisStop) \{\
+            \cf5 self\cf0 .\cf8 currentStopName\cf0  = thisStop;\
+            \cf7 NSLog\cf0 (\cf4 @"Stop is %@"\cf0 , thisStop);\
+            \
+        \}\
+        \
+        \cf5 if\cf0  (thisStopCode) \{\
+            \cf5 self\cf0 .\cf8 currentStopCode\cf0  = thisStopCode;\
+            \cf7 NSLog\cf0 (\cf4 @"Stop code is %@"\cf0 , thisStopCode);\
+        \}\
+        \
+    \}\
+    \cf5 else\cf0  \cf5 if\cf0  ( [elementName \cf7 isEqualToString\cf0 :\cf4 @"Agency"\cf0 ]) \{\
+        \
+        \
+        \cf6 NSString\cf0  *thisAgencyName = [attributeDict \cf7 objectForKey\cf0 :\cf4 @"Name"\cf0 ];    \cf2 // agency name\cf0 \
+        \
+        \cf5 if\cf0  (thisAgencyName) \{\
+            \cf5 self\cf0 .\cf8 currentAgency\cf0  = thisAgencyName;\
+            \cf7 NSLog\cf0 (\cf4 @"Agency is %@"\cf0 , thisAgencyName);\
+        \}\
+        \
+    \}\
+\
+    \
+    \cf5 self\cf0 .\cf8 element\cf0  = elementName;     \cf2 // required by NSXMLParser to return element\cf0 \
+\}\
+\
+\
+\
+\cf2 // used to read bus times\cf0 \
+\cf2 // currently put in didEndElement to read after detecting the <DepartureTime> element\cf0 \
+- (\cf5 void\cf0 )parser:(\cf6 NSXMLParser\cf0  *)parser didEndElement:(\cf6 NSString\cf0  *)elementName namespaceURI:(\cf6 NSString\cf0  *)namespaceURI qualifiedName:(\cf6 NSString\cf0  *)qName \{\
+    \
+    \cf5 if\cf0 ([\cf5 self\cf0 .\cf8 element\cf0  \cf7 isEqualToString\cf0 :\cf4 @"DepartureTime"\cf0 ]) \{\
+        \
+        \cf8 Bus\cf0  *thisBus = [[\cf8 Bus\cf0  \cf7 alloc\cf0 ]\
+            \cf11 initWithTime\cf0 :\cf5 self\cf0 .\cf8 currentTimeToStop\cf0 \
+            \cf11 forAgency\cf0 :\cf5 self\cf0 .\cf8 currentAgency\cf0 \
+            \cf11 andRouteCode\cf0 :\cf5 self\cf0 .\cf8 currentRoute\cf0 \
+            \cf11 andDirection\cf0 :\cf5 self\cf0 .\cf8 currentDirection\cf0 \
+            \cf11 andStopName\cf0 :\cf5 self\cf0 .\cf8 currentStopName\cf0 \
+            \cf11 andStopCode\cf0 :\cf5 self\cf0 .\cf8 currentStopCode\cf0 ];\
+        \
+        [\cf5 self\cf0 .\cf8 busArray\cf0  \cf7 addObject\cf0 :thisBus];   \cf2 // add the bus to the array\cf0 \
+        \
+        \cf7 NSLog\cf0 (\cf4 @"The next bus leaves in %@ minutes"\cf0 , \cf5 self\cf0 .\cf8 currentTimeToStop\cf0 );\
+    \
+    \}\
+    \cf5 self\cf0 .\cf8 element\cf0  = \cf5 nil\cf0 ;\
+\}\
+\
+\
+\cf2 // whenever DepartureTime is found, set the current time\cf0 \
+- (\cf5 void\cf0 )parser:(\cf6 NSXMLParser\cf0  *)parser foundCharacters:(\cf6 NSString\cf0  *)string \{\
+    \
+    \cf5 if\cf0  ([\cf5 self\cf0 .\cf8 element\cf0  \cf7 isEqualToString\cf0 :\cf4 @"DepartureTime"\cf0 ]) \{\
+        \cf5 self\cf0 .\cf8 currentTimeToStop\cf0  = string;\
+        \
+    \}\
+\}\
+\
+\
+\cf5 @end\cf0 \
+\
+\
+\
+\cf2 //\cf0 \
+\cf2 //  ViewController.h\cf0 \
+\cf2 //  SimpleTable\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/16/14.\cf0 \
+\cf2 //  Copyright (c) 2014 mkomadina. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\
+\cf2 // Main application view showing bus timing\cf0 \
+\
+\cf2 // The following was helpful for determing how to setup and use table views:\cf0 \
+\cf2 //  {\field{\*\fldinst{HYPERLINK "http://www.appcoda.com/uitableview-tutorial-storyboard-xcode5/"}}{\fldrslt \cf9 http://www.appcoda.com/uitableview-tutorial-storyboard-xcode5/}}\cf0 \
+\
+\cf3 #import \cf4 <UIKit/UIKit.h>\cf3 \
+\cf0 \
+\
+\cf5 @interface\cf0  ViewController : \cf6 UIViewController\cf0  <\cf6 UITableViewDelegate\cf0 , \cf6 UITableViewDataSource\cf0 >\
+\{\
+    \cf6 NSMutableArray\cf0  *busArray;           \cf2 // list of buses\cf0 \
+    \cf6 NSMutableArray\cf0  *listofTimesArray;\
+    \
+    \cf5 IBOutlet\cf0  \cf6 UITableView\cf0  *busTable;     \cf2 // UI table holding the bus list\cf0 \
+    \cf5 IBOutlet\cf0  \cf6 UIButton\cf0  *stopNameButton;\
+\}\
+\
+\cf5 @end\cf0 \
+\
+\
+\cf2 //\cf0 \
+\cf2 //  ViewController.m\cf0 \
+\cf2 //  SimpleTable\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Mike K on 9/16/14.\cf0 \
+\cf2 //  Copyright (c) 2014 mkomadina. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\
+\cf2 // The following source was helpful for determing how to setup and use table views:\cf0 \
+\cf2 //  {\field{\*\fldinst{HYPERLINK "http://www.appcoda.com/uitableview-tutorial-storyboard-xcode5/"}}{\fldrslt \cf9 http://www.appcoda.com/uitableview-tutorial-storyboard-xcode5/}}\cf0 \
+\
+\cf3 #import \cf4 "ViewController.h"\cf3 \
+#import \cf4 "Bus.h"\cf3 \
+#import \cf4 "BusParser.h"\cf3 \
+#import \cf4 <AudioToolbox/AudioServices.h>\cf3   \cf2 // for alert tones\cf0 \
+\
+\cf5 @interface\cf0  \cf8 ViewController\cf0  ()\
+\
+\cf5 @end\cf0 \
+\
+\cf5 @implementation\cf0  ViewController\
+\
+- (\cf5 IBAction\cf0 )refreshTable:(\cf5 id\cf0 )sender \{\
+    \cf2 // refresh the table by re-runnign the parser\cf0 \
+    \
+    \cf2 // TODO:  not sure this should be in the view.  Perhaps a Schedule class???\cf0 \
+    \cf8 busArray\cf0  = [[\cf6 NSMutableArray\cf0  \cf7 alloc\cf0 ] \cf7 init\cf0 ];\
+    \cf8 BusParser\cf0  *busParser = [[\cf8 BusParser\cf0  \cf7 alloc\cf0 ] \cf11 initWithArray\cf0 :\cf8 busArray\cf0 ];\
+    [busParser \cf11 parseXMLFile\cf0 ];\
+    \
+    \cf2 // sort the bus array by descending by arrival time\cf0 \
+    \cf6 NSSortDescriptor\cf0  *timeSorter = [[\cf6 NSSortDescriptor\cf0  \cf7 alloc\cf0 ] \cf7 initWithKey\cf0 :\cf4 @"departTimeMinutes"\cf7 ascending\cf0 :\cf5 YES\cf0 ];\
+    [\cf8 busArray\cf0  \cf7 sortUsingDescriptors\cf0 :[\cf6 NSArray\cf0  \cf7 arrayWithObject\cf0 :timeSorter]];\
+    \
+    [\cf8 busTable\cf0  \cf7 reloadData\cf0 ];\
+    \cf7 NSLog\cf0 (\cf4 @"in refresh"\cf0 );\
+    \
+\}\
+\
+- (\cf5 void\cf0 )viewDidLoad \{\
+    [\cf5 super\cf0  \cf7 viewDidLoad\cf0 ];\
+\
+    \cf2 // Do any additional setup after loading the view, typically from a nib.\cf0 \
+    \
+    \cf2 // create the container array for buses.\cf0 \
+    \cf2 // TODO: not sure this should be in the view\cf0 \
+    \
+    \cf8 busArray\cf0  = [[\cf6 NSMutableArray\cf0  \cf7 alloc\cf0 ] \cf7 init\cf0 ];\
+    \cf8 BusParser\cf0  *busParser = [[\cf8 BusParser\cf0  \cf7 alloc\cf0 ] \cf11 initWithArray\cf0 :\cf8 busArray\cf0 ];\
+    [busParser \cf11 parseXMLFile\cf0 ];\
+    \
+    \cf2 // sort the bus array\cf0 \
+    \cf2 // TODO:  consolidate the sorter\cf0 \
+    \cf6 NSSortDescriptor\cf0  *timeSorter = [[\cf6 NSSortDescriptor\cf0  \cf7 alloc\cf0 ] \cf7 initWithKey\cf0 :\cf4 @"departTimeMinutes"\cf7 ascending\cf0 :\cf5 YES\cf0 ];\
+    [\cf8 busArray\cf0  \cf7 sortUsingDescriptors\cf0 :[\cf6 NSArray\cf0  \cf7 arrayWithObject\cf0 :timeSorter]];\
+    \
+    \
+    \cf2 // schedule a timer to run every minute to update the view\cf0 \
+    \
+    [\cf6 NSTimer\cf0  \cf7 scheduledTimerWithTimeInterval\cf0 :\cf10 60.0\cf0 \
+                                     \cf7 target\cf0 :\cf5 self\cf0 \
+                                   \cf7 selector\cf0 :\cf5 @selector\cf0 (refreshTable:)\
+                                   \cf7 userInfo\cf0 :\cf5 nil\cf0 \
+                                    \cf7 repeats\cf0 :\cf5 YES\cf0 ];\
+    \
+\}\
+\
+\
+- (\cf5 void\cf0 )didReceiveMemoryWarning\
+\{\
+    [\cf5 super\cf0  \cf7 didReceiveMemoryWarning\cf0 ];\
+    \cf2 // Dispose of any resources that can be recreated.\cf0 \
+\}\
+\
+- (\cf6 NSInteger\cf0 )tableView:(\cf6 UITableView\cf0  *)tableView numberOfRowsInSection:(\cf6 NSInteger\cf0 )section\
+\{\
+    \cf2 // if there are no buses, leave a row for status\cf0 \
+    \
+    \cf5 long\cf0  numBuses = [\cf8 busArray\cf0  \cf7 count\cf0 ];\
+    \
+    \cf5 if\cf0  (numBuses == \cf10 0\cf0 ) \{\
+        \cf5 return\cf0  \cf10 1\cf0 ;\
+    \}\
+    \cf5 else\cf0 \
+        \cf5 return\cf0  [\cf8 busArray\cf0  \cf7 count\cf0 ];  \cf2 // return the number of buses\cf0 \
+    \
+\}\
+\
+- (\cf6 UITableViewCell\cf0  *)tableView:(\cf6 UITableView\cf0  *)tableView cellForRowAtIndexPath:(\cf6 NSIndexPath\cf0  *)indexPath\
+\{\
+    \cf5 static\cf0  \cf6 NSString\cf0  *simpleTableIdentifier = \cf4 @"SimpleTableCell"\cf0 ;\
+    \
+    \cf2 // get the cell information for the current row\cf0 \
+    \
+    \cf6 UITableViewCell\cf0  *cell = [tableView \cf7 dequeueReusableCellWithIdentifier\cf0 :simpleTableIdentifier];\
+    \
+    \cf5 if\cf0  (cell == \cf5 nil\cf0 ) \{\
+        cell = [[\cf6 UITableViewCell\cf0  \cf7 alloc\cf0 ] \cf7 initWithStyle\cf0 :\cf7 UITableViewCellStyleDefault\cf0  \cf7 reuseIdentifier\cf0 :simpleTableIdentifier];\
+    \}\
+    \
+    \
+    \cf2 // if there are no buses, then display message and return\cf0 \
+    \cf5 if\cf0  ([\cf8 busArray\cf0  \cf7 count\cf0 ]== \cf10 0\cf0 ) \{\
+        cell.\cf6 textLabel\cf0 .\cf6 text\cf0  = \cf4 @"No buses leaving within 90 minutes"\cf0 ;\
+        \cf5 return\cf0  cell;\
+    \}\
+    \
+    \cf6 NSString\cf0  *s;\
+    \cf8 Bus\cf0  *b;\
+    \
+    \cf2 // the table view will display the array of buses using the same index\cf0 \
+    b = [\cf8 busArray\cf0  \cf7 objectAtIndex\cf0 :indexPath.\cf6 row\cf0 ];     \cf2 // get the bus object for that row in the array\cf0 \
+    \
+    \
+    \cf2 // format the date and time\cf0 \
+    \
+    \cf6 NSDateFormatter\cf0  *dateFormatter = [[\cf6 NSDateFormatter\cf0  \cf7 alloc\cf0 ] \cf7 init\cf0 ];\
+    [dateFormatter \cf7 setDateFormat\cf0 :\cf4 @"hh:mm a"\cf0 ];\
+    \cf6 NSString\cf0  *formattedDateString = [dateFormatter \cf7 stringFromDate\cf0 :b.\cf8 departTime\cf0 ];\
+    \
+   s = [\cf6 NSString\cf0  \cf7 stringWithFormat\cf0 :\cf4 @"Bus %@ %@\\ndeparts at %@\\n%@ minutes"\cf0 , b.\cf8 routeCodeXML\cf0 , b.\cf8 directionXML\cf0 , formattedDateString, b.\cf8 departTimeXML\cf0 ];\
+\
+    \
+    [\cf8 stopNameButton\cf0  \cf7 setTitle\cf0 :b.\cf8 stopNameXML\cf0  \cf7 forState\cf0 :\cf7 UIControlStateNormal\cf0 ];\
+    \
+    cell.\cf6 textLabel\cf0 .\cf6 text\cf0  = s;\
+    \
+    \cf7 NSLog\cf0 (\cf4 @"the count is %d"\cf0 , [\cf8 busArray\cf0  \cf7 count\cf0 ]);\
+    \
+    \cf2 // set the warmth of the color depending how close the time is\cf0 \
+    \cf5 long\cf0  t = [b.\cf8 departTimeXML\cf0  \cf7 integerValue\cf0 ];\
+    \cf5 double\cf0  d = ((\cf10 90\cf0 - (\cf5 double\cf0 ) t)/\cf10 90.0\cf0 ) * \cf10 1.0\cf0 ;\
+\
+    \cf2 //UIColor *altCellColor = [UIColor colorWithRed:d green:0.4 blue:1-d alpha:d*.5];\cf0 \
+   \cf2 // UIColor *altCellColor = [UIColor colorWithRed:0.4 green:d blue:0.2 alpha:d*.4];\cf0 \
+   \cf2 // cell.backgroundColor = altCellColor;\cf0 \
+    \
+    \cf5 return\cf0  cell;\
+\}\
+\
+- (\cf5 void\cf0 )tableView:(\cf6 UITableView\cf0  *)tableView willDisplayCell:(\cf6 UITableViewCell\cf0  *)cell forRowAtIndexPath:(\cf6 NSIndexPath\cf0  *)indexPath \{\
+    \
+    cell.\cf6 textLabel\cf0 .\cf6 lineBreakMode\cf0  = \cf7 NSLineBreakByWordWrapping\cf0 ;\
+    cell.\cf6 textLabel\cf0 .\cf6 numberOfLines\cf0  = \cf10 3\cf0 ;\
+    \
+    \cf5 if\cf0  (indexPath.\cf6 row\cf0  == \cf10 0\cf0 ) \{   \cf2 // highlight the first row\cf0 \
+        \
+     \cf6 UIColor\cf0  *altCellColor = [\cf6 UIColor\cf0  \cf7 colorWithRed\cf0 :\cf10 0.0\cf0  \cf7 green\cf0 :\cf10 20.0\cf0  \cf7 blue\cf0 :\cf10 0.0\cf0  \cf7 alpha\cf0 :\cf10 0.2\cf0 ];\
+        \
+     cell.\cf6 backgroundColor\cf0  = altCellColor;\
+        \
+    \}\
+    \
+\}\
+\
+\
+-(\cf6 CGFloat\cf0 )tableView:(\cf6 UITableView\cf0  *)tableView heightForRowAtIndexPath:(\cf6 NSIndexPath\cf0  *)indexPath\
+\{\
+    \cf5 return\cf0  \cf10 100\cf0 ;     \cf2 // row heigth.  TODO:  Change this to more dynamic size\cf0 \
+\}\
+\
+\
+- (\cf5 void\cf0 ) tableView: (\cf6 UITableView\cf0  *) tableView didSelectRowAtIndexPath: (\cf6 NSIndexPath\cf0  *) indexPath \{\
+    \cf7 NSLog\cf0 (\cf4 @"++++ TAPPED ROW ++++"\cf0 );\
+    \
+    \cf2 // TODO:  This is placeholder testing for alerts\cf0 \
+    \
+    \cf7 AudioServicesPlayAlertSound\cf0 (\cf7 kSystemSoundID_Vibrate\cf0 );\
+    \
+    \cf6 NSDate\cf0  *alertTime = [[\cf6 NSDate\cf0  \cf7 date\cf0 ]\
+                         \cf7 dateByAddingTimeInterval\cf0 :\cf10 10\cf0 ];\
+    \cf6 UIApplication\cf0 * app = [\cf6 UIApplication\cf0  \cf7 sharedApplication\cf0 ];\
+    \cf6 UILocalNotification\cf0 * notifyAlarm = [[\cf6 UILocalNotification\cf0  \cf7 alloc\cf0 ]\
+                                        \cf7 init\cf0 ];\
+    \
+    \
+    \cf5 if\cf0  (notifyAlarm)\
+    \{\
+        notifyAlarm.\cf6 fireDate\cf0  = alertTime;\
+        notifyAlarm.\cf6 timeZone\cf0  = [\cf6 NSTimeZone\cf0  \cf7 defaultTimeZone\cf0 ];\
+        notifyAlarm.\cf6 repeatInterval\cf0  = \cf10 0\cf0 ;\
+        notifyAlarm.\cf6 soundName\cf0  = \cf4 @"bell_tree.mp3"\cf0 ;\
+        notifyAlarm.\cf6 alertBody\cf0  = \cf4 @"Bus leaving in 10 minutes"\cf0 ;\
+        [app \cf7 scheduleLocalNotification\cf0 :notifyAlarm];\
+    \}\
+    \
+\}\
+\
+\
+\
+\cf5 @end\cf0 \
+}
