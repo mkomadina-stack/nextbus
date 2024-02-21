@@ -1,4 +1,8 @@
 # nextbus
+
+<img width="701" alt="nextbus_UI" src="https://github.com/mkomadina-stack/nextbus/assets/63817287/2bdec544-3f64-4027-ba7b-1ce00ff4c6ad">
+
+
 iOS app that checks with SamTrans API for next available bus on routes
 
 Completed project for iOS class. Below was original proposal
